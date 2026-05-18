@@ -233,6 +233,67 @@ def get_events(code: str, since_id: int = 0) -> list[dict]:
     return result
 
 
+def write_checkpoint(
+    code: str,
+    agent: str,
+    completed_steps: list[str],
+    next_step: str,
+    context_files: list[str] | None = None,
+    notes: str = "",
+) -> dict | None:
+    """Write a structured checkpoint for pause/resume support."""
+    import datetime
+
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM rooms WHERE code=?", (code,)).fetchone()
+        if not row:
+            return None
+        _emit(
+            conn,
+            code,
+            "checkpoint",
+            agent,
+            {
+                "completed": completed_steps,
+                "next": next_step,
+                "files": context_files or [],
+            },
+        )
+
+    vault_dir = os.environ.get("HIVECHAT_VAULT_DIR")
+    if vault_dir:
+        out_dir = Path(vault_dir)
+    else:
+        out_dir = _db_path().parent / "checkpoints"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    date = datetime.datetime.now().strftime("%Y-%m-%d")
+    path = out_dir / f"{date}-checkpoint-{code}-{agent.lower().replace(' ', '-')}.md"
+
+    lines = [
+        "---",
+        "type: agent-checkpoint",
+        f"room_code: {code}",
+        f"topic: {row['topic']}",
+        f"agent_role: {agent}",
+        f"date: {date}",
+        "completed_steps:",
+    ]
+    for s in completed_steps:
+        lines.append(f'  - "{s}"')
+    lines.append(f'next_step: "{next_step}"')
+    if context_files:
+        lines.append("context_files:")
+        for f in context_files:
+            lines.append(f'  - "{f}"')
+    lines.extend(["---", ""])
+    if notes:
+        lines.extend([notes, ""])
+
+    path.write_text("\n".join(lines))
+    return {"path": str(path), "code": code, "agent": agent, "next_step": next_step}
+
+
 def close_room(code: str) -> dict | None:
     with _connect() as conn:
         row = conn.execute(

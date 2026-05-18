@@ -135,3 +135,28 @@ def test_closed_room_not_in_listing():
     rooms.close_room(code)
     listing = rooms.list_rooms()
     assert all(r["code"] != code for r in listing)
+
+
+def test_write_checkpoint(tmp_path):
+    code = rooms.create_room("checkpoint test")["code"]
+    rooms.join_room(code, "coder", "coder")
+    result = rooms.write_checkpoint(
+        code,
+        agent="coder",
+        completed_steps=["Analyzed auth.py", "Wrote validation logic"],
+        next_step="Write tests for validate_token()",
+        context_files=["src/auth.py", "tests/test_auth.py"],
+        notes="Token expiry edge case needs attention",
+    )
+    assert result is not None
+    assert result["next_step"] == "Write tests for validate_token()"
+    content = open(result["path"]).read()
+    assert "agent-checkpoint" in content
+    assert "Analyzed auth.py" in content
+    assert "Write tests for validate_token()" in content
+    assert "src/auth.py" in content
+
+    events = rooms.get_events(code)
+    checkpoint_events = [e for e in events if e["type"] == "checkpoint"]
+    assert len(checkpoint_events) == 1
+    assert checkpoint_events[0]["data"]["next"] == "Write tests for validate_token()"

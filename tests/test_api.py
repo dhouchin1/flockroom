@@ -124,3 +124,22 @@ def test_get_room_detail():
     assert data["topic"] == "detail test"
     assert len(data["recent_messages"]) == 1
     assert len(data["participants"]) >= 1
+
+
+def test_checkpoint_endpoint():
+    code = client.post("/rooms", json={"topic": "ckpt test"}).json()["code"]
+    client.post(f"/rooms/{code}/join", json={"name": "coder", "role": "coder"})
+    r = client.post(
+        f"/rooms/{code}/checkpoint",
+        json={
+            "agent": "coder",
+            "completed_steps": ["step 1", "step 2"],
+            "next_step": "step 3",
+            "context_files": ["src/main.py"],
+            "notes": "edge case in parsing",
+        },
+    )
+    assert r.status_code == 201
+    data = r.json()
+    assert data["next_step"] == "step 3"
+    assert "path" in data

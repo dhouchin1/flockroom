@@ -140,6 +140,37 @@ def update_progress(code: str, agent: str, step_index: int, done: bool = True) -
 
 
 @mcp.tool()
+def write_checkpoint(
+    code: str,
+    agent: str,
+    completed_steps: list[str],
+    next_step: str,
+    context_files: list[str] | None = None,
+    notes: str = "",
+) -> dict:
+    """Save a structured checkpoint so work can be resumed after a session ends.
+
+    Call this at natural breakpoints: after completing a major step, before a
+    potentially long operation, or when you sense context limits approaching.
+
+    Args:
+        code:            Room code
+        agent:           Your name
+        completed_steps: What you've already finished (list of brief descriptions)
+        next_step:       What should happen next when resumed
+        context_files:   Key files involved (paths relative to project root)
+        notes:           Free-form context that would help a fresh agent pick up
+
+    The checkpoint is written as a vault-compatible Markdown note with YAML frontmatter.
+    The dashboard can use it to offer a "Resume" button after a session dies.
+    """
+    result = r.write_checkpoint(code, agent, completed_steps, next_step, context_files, notes)
+    if result is None:
+        return {"error": f"Room '{code}' not found"}
+    return result
+
+
+@mcp.tool()
 def list_rooms() -> list:
     """List all currently open hive rooms."""
     return r.list_rooms()

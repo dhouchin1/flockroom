@@ -74,6 +74,14 @@ class ProgressBody(BaseModel):
     done: bool = True
 
 
+class CheckpointBody(BaseModel):
+    agent: str
+    completed_steps: list[str]
+    next_step: str
+    context_files: list[str] = []
+    notes: str = ""
+
+
 # ── routes ───────────────────────────────────────────────────────────────────
 
 
@@ -143,6 +151,21 @@ def post_progress(code: str, body: ProgressBody):
     if not ok:
         raise HTTPException(404, f"Room '{code}' not found or closed")
     return {"ok": True}
+
+
+@app.post("/rooms/{code}/checkpoint", status_code=201)
+def post_checkpoint(code: str, body: CheckpointBody):
+    result = rooms.write_checkpoint(
+        code,
+        body.agent,
+        body.completed_steps,
+        body.next_step,
+        body.context_files or None,
+        body.notes,
+    )
+    if result is None:
+        raise HTTPException(404, f"Room '{code}' not found")
+    return result
 
 
 @app.delete("/rooms/{code}")
