@@ -83,7 +83,7 @@ def test_log_tool_call_emits_event():
     tool_events = [e for e in events if e["type"] == "tool_call"]
     assert len(tool_events) == 1
     assert tool_events[0]["data"]["tool"] == "Read"
-    assert tool_events[0]["data"]["args"] == "auth.py"
+    assert tool_events[0]["data"]["args_summary"] == "auth.py"
 
 
 def test_update_progress():
@@ -93,7 +93,7 @@ def test_update_progress():
     events = rooms.get_events(code)
     progress_events = [e for e in events if e["type"] == "progress"]
     assert len(progress_events) == 1
-    assert progress_events[0]["data"]["step"] == 2
+    assert progress_events[0]["data"]["step_index"] == 2
     assert progress_events[0]["data"]["done"] is True
 
 

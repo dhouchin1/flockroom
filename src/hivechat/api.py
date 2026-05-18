@@ -194,7 +194,16 @@ async def stream_events(code: str, since_id: int = 0):
             new_events = rooms.get_events(code, since_id=last_id)
             for ev in new_events:
                 last_id = ev["id"]
-                yield f"data: {json.dumps(ev)}\n\n"
+                flat = {
+                    "type": ev["type"],
+                    "id": ev["id"],
+                    "agent": ev["agent"],
+                    "author": ev["agent"],
+                    "name": ev["agent"],
+                    "ts": ev["ts"],
+                }
+                flat.update(ev.get("data", {}))
+                yield f"data: {json.dumps(flat)}\n\n"
             if not new_events:
                 yield ": keepalive\n\n"
             await asyncio.sleep(1)

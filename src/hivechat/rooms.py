@@ -172,7 +172,7 @@ def log_tool_call(
             code,
             "tool_call",
             agent,
-            {"tool": tool, "args": args_summary, "result": result_summary},
+            {"tool": tool, "args_summary": args_summary, "result_summary": result_summary},
         )
     return True
 
@@ -183,7 +183,7 @@ def update_progress(code: str, agent: str, step_index: int, done: bool) -> bool:
             "SELECT 1 FROM rooms WHERE code=? AND closed_at IS NULL", (code,)
         ).fetchone():
             return False
-        _emit(conn, code, "progress", agent, {"step": step_index, "done": done})
+        _emit(conn, code, "progress", agent, {"step_index": step_index, "done": done})
     return True
 
 
