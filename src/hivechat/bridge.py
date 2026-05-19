@@ -9,7 +9,7 @@ the model, and posts the result back.  If --wait-for-role is set it polls
 the room until an agent with that role has posted before processing — this
 is what makes true sequential cascade topologies work.
 
-Typical invocation (spawned by brain-bridge launch-team):
+Typical invocation:
   hivechat agent --room <code> --name "Implementer" --role implementer \\
                  --backend claude --model claude-sonnet-4-6 \\
                  --wait-for-role preprocessor \\

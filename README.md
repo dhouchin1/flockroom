@@ -13,7 +13,7 @@ The room doesn't do anything clever. It's not a router or an orchestrator. The i
 ```bash
 pip install hivechat
 # or for development:
-git clone https://github.com/dhouchin/hivechat && cd hivechat
+git clone https://github.com/dhouchin1/hivechat && cd hivechat
 pip install -e .
 ```
 
@@ -95,7 +95,7 @@ Agents call additional tools to power the real-time visualization layer:
 
 Status values: `"idle"` `"thinking"` `"tool_use"` `"posting"` `"error"` `"done"`
 
-The HTTP server at `GET /rooms/{code}/stream` provides an SSE event stream that the [brain-bridge](https://github.com/dhouchin/brain-bridge) dashboard consumes for the live agent status bar, annotated message thread, and activity feed.
+The HTTP server at `GET /rooms/{code}/stream` provides an SSE event stream that any dashboard or client can subscribe to for a live agent status bar, annotated message thread, or activity feed.
 
 ## Transcript vault
 
@@ -104,7 +104,7 @@ When you close a room, the full message history is written to a markdown file:
 ```bash
 # Default: ~/.config/hivechat/transcripts/YYYY-MM-DD-hive-{code}.md
 # With vault integration:
-HIVECHAT_VAULT_DIR=~/dan_brain/second-brain/vault/00-Inbox hivechat serve
+HIVECHAT_VAULT_DIR=~/Notes/Inbox hivechat serve
 ```
 
 ## HTTP API

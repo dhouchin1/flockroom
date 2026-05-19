@@ -1,14 +1,92 @@
+# ── Python ─────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+*.egg
 *.egg-info/
 .eggs/
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Build / packaging
 dist/
 build/
 .hatch/
+wheels/
+*.whl
+
+# Virtualenvs
 .venv/
 venv/
+env/
+ENV/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyre/
+.pytype/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ── Secrets / credentials ──────────────────────────────────────────────────
+# Never commit anything that looks like a key, token, or env file.
+.env
+.env.*
+!.env.example
+*.env.local
+secrets/
+.secrets/
+credentials*
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+.netrc
+
+# ── Runtime data ───────────────────────────────────────────────────────────
+# hivechat writes SQLite + transcripts + checkpoints — these often contain
+# captured prompt / message content and should never be checked in.
 *.db
 *.db-wal
 *.db-shm
-.env
+transcripts/
+checkpoints/
+*.log
+logs/
+
+# ── Editor / IDE ───────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# ── OS metadata ────────────────────────────────────────────────────────────
 .DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── AI assistant local state ───────────────────────────────────────────────
+# Per-project Claude Code settings / local memory shouldn't ship to a
+# public portfolio repo.
+.claude/
+CLAUDE.local.md
+.aider*
+.cursor/

@@ -1,8 +1,8 @@
-"""FastAPI REST + SSE endpoints for the brain-bridge dashboard.
+"""FastAPI REST + SSE endpoints for any dashboard or client.
 
 Run with: hivechat serve [--host 127.0.0.1] [--port 8090]
 
-The dashboard connects to:
+Clients connect to:
   GET  /rooms                      — list active rooms
   GET  /rooms/{code}               — room detail + recent messages
   GET  /rooms/{code}/stream        — SSE typed event stream (for live visualization)
