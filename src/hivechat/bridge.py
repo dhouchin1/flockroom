@@ -127,6 +127,34 @@ def main() -> None:
         metavar="SECONDS",
         help="Max seconds to wait for --wait-for-role (default: 600)",
     )
+    ap.add_argument(
+        "--loop",
+        action="store_true",
+        help="After the first run, keep polling for peer messages and re-run the "
+             "model on each new message (reactive swarm mode). Exits when --loop-max "
+             "iterations is hit or the room is closed.",
+    )
+    ap.add_argument(
+        "--loop-poll",
+        type=int,
+        default=_POLL_INTERVAL,
+        metavar="SECONDS",
+        help="Seconds between peer-message polls in --loop mode (default: 5)",
+    )
+    ap.add_argument(
+        "--loop-max",
+        type=int,
+        default=20,
+        metavar="N",
+        help="Hard cap on iterations in --loop mode to bound cost (default: 20)",
+    )
+    ap.add_argument(
+        "--loop-idle-exit",
+        type=int,
+        default=300,
+        metavar="SECONDS",
+        help="Exit if --loop sees no peer messages for this many seconds (default: 300)",
+    )
     ap.add_argument("--prompt", required=True, help="System prompt / task description")
 
     # When invoked via `hivechat agent ...`, sys.argv is
@@ -168,24 +196,68 @@ def main() -> None:
                 last_id = new_msgs[-1]["id"]
             trigger_found = any(m["role"] == args.wait_for_role for m in history)
 
-    # Build the full prompt with room context injected
-    full_prompt = _build_prompt(history, args.prompt, topic)
-
     backend_label = f"{args.backend}:{args.model or 'default'}"
-    r.report_status(args.room, args.name, "thinking", f"Running {backend_label}")
 
-    try:
+    def _generate_and_post(hist: list[dict]) -> None:
+        full_prompt = _build_prompt(hist, args.prompt, topic)
+        r.report_status(args.room, args.name, "thinking", f"Running {backend_label}")
         if args.backend == "claude":
             output = _run_claude(full_prompt, args.model)
         else:
             model = args.model or "llama3.1:8b"
             output = _run_openai(full_prompt, model, args.base_url, args.api_key)
-
         r.report_status(args.room, args.name, "posting", "")
         r.post_message(args.room, args.name, output)
         r.report_status(args.room, args.name, "done", "")
+
+    try:
+        _generate_and_post(history)
+        # Re-fetch our own posted message so the loop sees it in history
+        history = r.read_messages(args.room, since_id=0)
+        last_id = max((m["id"] for m in history), default=last_id)
 
     except Exception as exc:
         r.report_status(args.room, args.name, "error", str(exc))
         r.post_message(args.room, args.name, f"[{args.name} error] {exc}")
         sys.exit(1)
+
+    if not args.loop:
+        return
+
+    # ── reactive swarm loop ───────────────────────────────────────────────────
+    # Poll for peer messages; for each new one from someone else, regenerate.
+    r.report_status(args.room, args.name, "idle", "Watching for peer messages")
+    iterations = 0
+    last_peer_ts = time.monotonic()
+
+    while iterations < args.loop_max:
+        time.sleep(args.loop_poll)
+
+        # Check whether the room is still open
+        room = r.get_room(args.room)
+        if room is None or room.get("closed_at"):
+            r.report_status(args.room, args.name, "done", "Room closed")
+            return
+
+        new_msgs = r.read_messages(args.room, since_id=last_id)
+        if new_msgs:
+            history.extend(new_msgs)
+            last_id = new_msgs[-1]["id"]
+        peer_msgs = [m for m in new_msgs if m["author"] != args.name]
+
+        if not peer_msgs:
+            if time.monotonic() - last_peer_ts > args.loop_idle_exit:
+                r.report_status(args.room, args.name, "done", "Idle exit")
+                return
+            continue
+
+        last_peer_ts = time.monotonic()
+        iterations += 1
+        try:
+            _generate_and_post(history)
+            history = r.read_messages(args.room, since_id=0)
+            last_id = max((m["id"] for m in history), default=last_id)
+        except Exception as exc:
+            r.report_status(args.room, args.name, "error", str(exc))
+            r.post_message(args.room, args.name, f"[{args.name} error] {exc}")
+            return
