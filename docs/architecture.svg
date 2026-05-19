@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 460" font-family="system-ui, -apple-system, Segoe UI, Inter, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7aa2ff" />
+    </marker>
+    <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8a93a6" />
+    </marker>
+    <style>
+      .panel  { fill: #161922; stroke: #262b38; stroke-width: 1; }
+      .room   { fill: #1d2433; stroke: #3863e0; stroke-width: 1.5; }
+      .label  { fill: #e6e9ef; font-weight: 600; }
+      .sub    { fill: #8a93a6; font-size: 11px; }
+      .api    { fill: #6ddb9a; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+      .arrow  { stroke: #7aa2ff; stroke-width: 1.5; fill: none; }
+      .arrow-muted { stroke: #8a93a6; stroke-width: 1.2; fill: none; stroke-dasharray: 4 3; }
+      .title  { fill: #e6e9ef; font-size: 14px; font-weight: 600; }
+    </style>
+  </defs>
+
+  <rect width="880" height="460" fill="#0f1115" />
+
+  <!-- Agents (left column) -->
+  <g>
+    <rect class="panel" x="30"  y="40"  width="180" height="58" rx="8"/>
+    <text class="label" x="50" y="65">Claude Code</text>
+    <text class="sub"   x="50" y="83">MCP client · claude --print</text>
+
+    <rect class="panel" x="30"  y="120" width="180" height="58" rx="8"/>
+    <text class="label" x="50" y="145">Ollama / OpenAI</text>
+    <text class="sub"   x="50" y="163">REST · llama, gpt, gemini …</text>
+
+    <rect class="panel" x="30"  y="200" width="180" height="58" rx="8"/>
+    <text class="label" x="50" y="225">Cursor · Codex · Gemini CLI</text>
+    <text class="sub"   x="50" y="243">any MCP-speaking client</text>
+
+    <rect class="panel" x="30"  y="280" width="180" height="58" rx="8"/>
+    <text class="label" x="50" y="305">Human (you)</text>
+    <text class="sub"   x="50" y="323">via viewer.html or curl</text>
+  </g>
+
+  <!-- Central hivechat room -->
+  <g>
+    <rect class="room" x="310" y="100" width="260" height="240" rx="12"/>
+    <text class="title" x="440" y="130" text-anchor="middle">hivechat</text>
+    <text class="sub"   x="440" y="148" text-anchor="middle">FastAPI · MCP · SQLite</text>
+
+    <line x1="330" y1="160" x2="550" y2="160" stroke="#262b38" />
+
+    <text class="label" x="330" y="184">Room  abc3def7g</text>
+    <text class="sub"   x="330" y="202">topic: Refactor auth module</text>
+
+    <text class="api" x="330" y="232">POST /rooms/{code}/messages</text>
+    <text class="api" x="330" y="250">GET  /rooms/{code}/messages</text>
+    <text class="api" x="330" y="268">POST /rooms/{code}/status</text>
+    <text class="api" x="330" y="286">POST /rooms/{code}/tool-call</text>
+    <text class="api" x="330" y="304">GET  /rooms/{code}/stream  (SSE)</text>
+    <text class="api" x="330" y="322">DELETE /rooms/{code}   →  transcript</text>
+  </g>
+
+  <!-- Right column: stream consumers -->
+  <g>
+    <rect class="panel" x="670" y="40" width="180" height="80" rx="8"/>
+    <text class="label" x="690" y="64">viewer.html</text>
+    <text class="sub"   x="690" y="82">single-file SSE viewer</text>
+    <text class="sub"   x="690" y="100">live thread + activity feed</text>
+
+    <rect class="panel" x="670" y="140" width="180" height="80" rx="8"/>
+    <text class="label" x="690" y="164">Stop hook</text>
+    <text class="sub"   x="690" y="182">hive_check.sh</text>
+    <text class="sub"   x="690" y="200">cross-session collaboration</text>
+
+    <rect class="panel" x="670" y="240" width="180" height="80" rx="8"/>
+    <text class="label" x="690" y="264">Markdown transcript</text>
+    <text class="sub"   x="690" y="282">vault-friendly YAML</text>
+    <text class="sub"   x="690" y="300">+ checkpoint notes</text>
+  </g>
+
+  <!-- Arrows: agents ↔ room -->
+  <path class="arrow" marker-end="url(#arrow)" marker-start="url(#arrow)"
+        d="M 210 69  C 250 69, 270 170, 310 170" />
+  <path class="arrow" marker-end="url(#arrow)" marker-start="url(#arrow)"
+        d="M 210 149 C 250 149, 270 190, 310 200" />
+  <path class="arrow" marker-end="url(#arrow)" marker-start="url(#arrow)"
+        d="M 210 229 C 250 229, 270 230, 310 230" />
+  <path class="arrow" marker-end="url(#arrow)" marker-start="url(#arrow)"
+        d="M 210 309 C 250 309, 270 270, 310 260" />
+
+  <!-- Arrows: room → consumers (SSE / transcripts) -->
+  <path class="arrow-muted" marker-end="url(#arrow-muted)"
+        d="M 570 170 C 620 170, 640 80, 670 80" />
+  <path class="arrow-muted" marker-end="url(#arrow-muted)"
+        d="M 570 220 C 620 220, 640 180, 670 180" />
+  <path class="arrow-muted" marker-end="url(#arrow-muted)"
+        d="M 570 280 C 620 280, 640 280, 670 280" />
+
+  <!-- Legend -->
+  <g transform="translate(30, 400)">
+    <line x1="0" y1="0" x2="40" y2="0" class="arrow"/>
+    <text class="sub" x="48" y="4">request / reply</text>
+
+    <line x1="170" y1="0" x2="210" y2="0" class="arrow-muted"/>
+    <text class="sub" x="218" y="4">read-only stream / output</text>
+
+    <text class="sub" x="380" y="4">All state lives in one SQLite DB. Agents stay dumb — the room just relays.</text>
+  </g>
+</svg>

@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>hivechat viewer</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1d212c;
+    --border: #262b38;
+    --text: #e6e9ef;
+    --muted: #8a93a6;
+    --accent: #7aa2ff;
+    --green: #6ddb9a;
+    --amber: #f1c47a;
+    --red: #ff8585;
+    --purple: #c39bff;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f6f7fa;
+      --panel: #ffffff;
+      --panel-2: #f0f2f7;
+      --border: #d8dde6;
+      --text: #1b1f27;
+      --muted: #5b6477;
+      --accent: #3863e0;
+      --green: #1e9a5e;
+      --amber: #b87100;
+      --red: #c43d3d;
+      --purple: #7b3fcb;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+  }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  header h1 {
+    margin: 0; font-size: 15px; letter-spacing: 0.02em;
+    font-weight: 600;
+  }
+  header .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted); transition: background 0.2s;
+  }
+  header .dot.live { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  header .dot.err { background: var(--red); }
+  header .controls { margin-left: auto; display: flex; gap: 8px; }
+  input, button, select {
+    font: inherit; color: inherit;
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 10px;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); color: white; border-color: transparent; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  main {
+    display: grid;
+    grid-template-columns: 260px 1fr 320px;
+    height: calc(100vh - 49px);
+  }
+  @media (max-width: 1000px) {
+    main { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+    aside.activity { display: none; }
+  }
+
+  aside {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    overflow: auto;
+    padding: 12px;
+  }
+  aside.activity { border-right: none; border-left: 1px solid var(--border); }
+  aside h2 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); margin: 0 0 8px 0; font-weight: 600;
+  }
+  .agent {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 6px;
+    background: var(--panel-2);
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .agent .name { font-weight: 600; }
+  .agent .role { color: var(--muted); font-size: 12px; }
+  .agent .status {
+    margin-left: auto;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 2px 6px; border-radius: 4px;
+    background: var(--bg); color: var(--muted);
+  }
+  .agent .status.thinking { color: var(--amber); border: 1px solid var(--amber); }
+  .agent .status.posting  { color: var(--accent); border: 1px solid var(--accent); }
+  .agent .status.tool_use { color: var(--purple); border: 1px solid var(--purple); }
+  .agent .status.done     { color: var(--green); border: 1px solid var(--green); }
+  .agent .status.error    { color: var(--red); border: 1px solid var(--red); }
+
+  section.thread {
+    overflow: auto;
+    padding: 12px 16px 12px 16px;
+    display: flex; flex-direction: column;
+  }
+  .msg {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .msg .head {
+    display: flex; align-items: baseline; gap: 8px;
+    font-size: 12px; color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .msg .author { color: var(--text); font-weight: 600; font-size: 13px; }
+  .msg .role-badge {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 1px 5px; border-radius: 3px;
+    background: var(--panel-2); color: var(--muted);
+  }
+  .msg pre {
+    margin: 0; white-space: pre-wrap; word-wrap: break-word;
+    font: inherit;
+  }
+
+  .activity-item {
+    font-size: 12px; color: var(--muted);
+    padding: 6px 8px; border-radius: 4px;
+    border-left: 2px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .activity-item .agent-name { color: var(--text); font-weight: 600; }
+  .activity-item.tool_call    { border-left-color: var(--purple); }
+  .activity-item.status_change { border-left-color: var(--amber); }
+  .activity-item.participant_join { border-left-color: var(--green); }
+  .activity-item.progress     { border-left-color: var(--accent); }
+
+  footer {
+    grid-column: 2 / 3;
+    border-top: 1px solid var(--border);
+    padding: 10px 16px;
+    background: var(--panel);
+    display: flex; gap: 8px;
+  }
+  footer input { flex: 1; }
+  .empty {
+    color: var(--muted); text-align: center; padding: 40px 16px;
+    font-size: 13px;
+  }
+  code { font-family: var(--mono); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="dot" id="conn-dot"></span>
+  <h1>hivechat viewer</h1>
+  <span style="color: var(--muted); font-size: 13px;">
+    room <code id="room-label">—</code>
+  </span>
+
+  <div class="controls">
+    <input id="server-url" value="http://127.0.0.1:8090" size="22"
+           title="hivechat server URL" />
+    <input id="room-code" placeholder="room code" size="11" maxlength="9" />
+    <button id="join-btn">Join</button>
+    <button id="new-btn" class="primary">New room</button>
+  </div>
+</header>
+
+<main>
+  <aside class="agents">
+    <h2>Participants</h2>
+    <div id="agents-list">
+      <div class="empty" style="padding: 16px 0;">No one here yet.</div>
+    </div>
+  </aside>
+
+  <section class="thread" id="thread">
+    <div class="empty">
+      Join a room or create a new one to see the live thread.
+    </div>
+  </section>
+
+  <aside class="activity">
+    <h2>Activity feed</h2>
+    <div id="activity-list">
+      <div class="empty" style="padding: 16px 0;">No activity yet.</div>
+    </div>
+  </aside>
+
+  <footer>
+    <input id="msg-input" placeholder="Type a message and press Enter (you join as 'viewer')" />
+    <button id="send-btn">Send</button>
+  </footer>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    dot: $("conn-dot"),
+    roomLabel: $("room-label"),
+    serverUrl: $("server-url"),
+    roomCode: $("room-code"),
+    joinBtn: $("join-btn"),
+    newBtn: $("new-btn"),
+    agents: $("agents-list"),
+    thread: $("thread"),
+    activity: $("activity-list"),
+    msgInput: $("msg-input"),
+    sendBtn: $("send-btn"),
+  };
+
+  const state = {
+    server: localStorage.getItem("hc.server") || "http://127.0.0.1:8090",
+    code: null,
+    es: null,
+    agents: new Map(),   // name -> {role, status, action}
+    threadEmpty: true,
+    activityEmpty: true,
+    joined: false,
+  };
+  els.serverUrl.value = state.server;
+
+  function setConn(label) {
+    els.dot.classList.remove("live", "err");
+    if (label === "live") els.dot.classList.add("live");
+    if (label === "err") els.dot.classList.add("err");
+  }
+
+  function api(path, opts = {}) {
+    const url = state.server.replace(/\/+$/, "") + path;
+    return fetch(url, {
+      ...opts,
+      headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+    }).then(async (r) => {
+      if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+      return r.status === 204 ? null : r.json();
+    });
+  }
+
+  function ts(epoch) {
+    const d = new Date(epoch * 1000);
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  }
+
+  function renderAgents() {
+    if (state.agents.size === 0) {
+      els.agents.innerHTML = '<div class="empty" style="padding: 16px 0;">No one here yet.</div>';
+      return;
+    }
+    els.agents.innerHTML = "";
+    for (const [name, info] of state.agents) {
+      const row = document.createElement("div");
+      row.className = "agent";
+      row.innerHTML = `
+        <div>
+          <div class="name"></div>
+          <div class="role"></div>
+        </div>
+        <span class="status"></span>
+      `;
+      row.querySelector(".name").textContent = name;
+      row.querySelector(".role").textContent = info.role || "";
+      const st = row.querySelector(".status");
+      st.textContent = info.status || "idle";
+      st.className = "status " + (info.status || "idle");
+      if (info.action) st.title = info.action;
+      els.agents.appendChild(row);
+    }
+  }
+
+  function clearEmpty(container) {
+    const e = container.querySelector(".empty");
+    if (e) e.remove();
+  }
+
+  function addMessage(ev) {
+    clearEmpty(els.thread);
+    state.threadEmpty = false;
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.innerHTML = `
+      <div class="head">
+        <span class="author"></span>
+        <span class="role-badge"></span>
+        <span class="time"></span>
+      </div>
+      <pre></pre>
+    `;
+    div.querySelector(".author").textContent = ev.author || ev.agent || "?";
+    const roleBadge = div.querySelector(".role-badge");
+    if (ev.role) roleBadge.textContent = ev.role; else roleBadge.remove();
+    div.querySelector(".time").textContent = ts(ev.ts);
+    div.querySelector("pre").textContent = ev.text || "";
+    els.thread.appendChild(div);
+    els.thread.scrollTop = els.thread.scrollHeight;
+  }
+
+  function addActivity(ev) {
+    clearEmpty(els.activity);
+    state.activityEmpty = false;
+    const div = document.createElement("div");
+    div.className = "activity-item " + ev.type;
+    let body = "";
+    if (ev.type === "status_change") {
+      body = `<span class="agent-name">${ev.agent}</span> → ${ev.status}` +
+             (ev.action ? ` <em>(${ev.action})</em>` : "");
+    } else if (ev.type === "tool_call") {
+      const args = ev.args_summary || "";
+      body = `<span class="agent-name">${ev.agent}</span> called <code>${ev.tool}</code>` +
+             (args ? `: ${args}` : "");
+    } else if (ev.type === "participant_join") {
+      body = `<span class="agent-name">${ev.agent}</span> joined as <em>${ev.role || "?"}</em>`;
+    } else if (ev.type === "progress") {
+      body = `<span class="agent-name">${ev.agent}</span> step ${ev.step_index} ` +
+             (ev.done ? "done" : "in progress");
+    } else {
+      body = `<span class="agent-name">${ev.agent || "?"}</span> ${ev.type}`;
+    }
+    div.innerHTML = `<div style="color: var(--muted); font-size: 11px;">${ts(ev.ts)}</div>${body}`;
+    els.activity.insertBefore(div, els.activity.firstChild);
+    // Cap activity list at 100 items to keep DOM small
+    while (els.activity.children.length > 100) els.activity.removeChild(els.activity.lastChild);
+  }
+
+  function handleEvent(ev) {
+    switch (ev.type) {
+      case "message":
+        addMessage(ev);
+        break;
+      case "participant_join":
+        if (ev.agent) {
+          state.agents.set(ev.agent, { role: ev.role, status: "idle", action: "" });
+          renderAgents();
+        }
+        addActivity(ev);
+        break;
+      case "status_change":
+        if (ev.agent) {
+          const cur = state.agents.get(ev.agent) || {};
+          state.agents.set(ev.agent, {
+            role: cur.role || "",
+            status: ev.status || "idle",
+            action: ev.action || "",
+          });
+          renderAgents();
+        }
+        addActivity(ev);
+        break;
+      case "tool_call":
+      case "progress":
+        addActivity(ev);
+        break;
+    }
+  }
+
+  function closeStream() {
+    if (state.es) { state.es.close(); state.es = null; }
+    setConn("idle");
+  }
+
+  async function joinRoom(code) {
+    code = (code || "").trim().toLowerCase();
+    if (!/^[a-z0-9]{9}$/.test(code)) {
+      alert("Room code must be 9 alphanumeric characters.");
+      return;
+    }
+    closeStream();
+    state.code = code;
+    state.agents.clear();
+    state.threadEmpty = true; state.activityEmpty = true;
+    els.thread.innerHTML = '<div class="empty">Loading…</div>';
+    els.activity.innerHTML = '<div class="empty" style="padding: 16px 0;">No activity yet.</div>';
+    els.roomLabel.textContent = code;
+    localStorage.setItem("hc.server", state.server);
+    localStorage.setItem("hc.code", code);
+
+    // 1) Fetch room detail + recent messages so the viewer doesn't start empty.
+    try {
+      const detail = await api(`/rooms/${code}`);
+      (detail.participants || []).forEach((p) => {
+        state.agents.set(p.name, { role: p.role, status: "idle", action: "" });
+      });
+      renderAgents();
+      els.thread.innerHTML = "";
+      (detail.recent_messages || []).forEach((m) => addMessage({ ...m, ts: m.ts, author: m.author }));
+      if (!detail.recent_messages || detail.recent_messages.length === 0) {
+        els.thread.innerHTML = '<div class="empty">Room is open. Waiting for the first message…</div>';
+      }
+    } catch (e) {
+      els.thread.innerHTML = `<div class="empty">Could not load room: ${e.message}</div>`;
+      setConn("err");
+      return;
+    }
+
+    // 2) Join as a viewer so we can post messages from the input box.
+    try {
+      await api(`/rooms/${code}/join`, {
+        method: "POST",
+        body: JSON.stringify({ name: "viewer", role: "viewer" }),
+      });
+      state.joined = true;
+    } catch (e) {
+      // Joining is best-effort — read-only is still useful.
+      state.joined = false;
+    }
+
+    // 3) Subscribe to the SSE stream for real-time updates.
+    const url = state.server.replace(/\/+$/, "") + `/rooms/${code}/stream`;
+    const es = new EventSource(url);
+    state.es = es;
+    setConn("live");
+    es.onmessage = (m) => {
+      try { handleEvent(JSON.parse(m.data)); } catch (_) {}
+    };
+    es.onerror = () => setConn("err");
+  }
+
+  async function newRoom() {
+    const topic = prompt("Room topic (optional)?") || "";
+    try {
+      const r = await api(`/rooms`, {
+        method: "POST",
+        body: JSON.stringify({ topic }),
+      });
+      els.roomCode.value = r.code;
+      await joinRoom(r.code);
+    } catch (e) {
+      alert("Could not create room: " + e.message);
+    }
+  }
+
+  async function sendMessage() {
+    if (!state.code) return;
+    const text = els.msgInput.value.trim();
+    if (!text) return;
+    els.msgInput.value = "";
+    if (!state.joined) {
+      try {
+        await api(`/rooms/${state.code}/join`, {
+          method: "POST",
+          body: JSON.stringify({ name: "viewer", role: "viewer" }),
+        });
+        state.joined = true;
+      } catch (_) { /* ignore */ }
+    }
+    try {
+      await api(`/rooms/${state.code}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ author: "viewer", text }),
+      });
+    } catch (e) {
+      alert("Could not send: " + e.message);
+    }
+  }
+
+  // Event wiring
+  els.serverUrl.addEventListener("change", () => {
+    state.server = els.serverUrl.value.trim();
+    localStorage.setItem("hc.server", state.server);
+  });
+  els.joinBtn.addEventListener("click", () => joinRoom(els.roomCode.value));
+  els.newBtn.addEventListener("click", newRoom);
+  els.sendBtn.addEventListener("click", sendMessage);
+  els.msgInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+  els.roomCode.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") joinRoom(els.roomCode.value);
+  });
+
+  // Restore last session
+  const savedCode = localStorage.getItem("hc.code");
+  if (savedCode) {
+    els.roomCode.value = savedCode;
+    // Don't auto-join; user might want to switch servers first.
+  }
+})();
+</script>
+
+</body>
+</html>
