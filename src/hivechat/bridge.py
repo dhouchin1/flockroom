@@ -192,8 +192,8 @@ def main() -> None:
         "--loop",
         action="store_true",
         help="After the first run, keep polling for peer messages and re-run the "
-             "model on each new message (reactive swarm mode). Exits when --loop-max "
-             "iterations is hit or the room is closed.",
+        "model on each new message (reactive swarm mode). Exits when --loop-max "
+        "iterations is hit or the room is closed.",
     )
     ap.add_argument(
         "--loop-poll",
@@ -221,7 +221,7 @@ def main() -> None:
         default="FINAL:",
         metavar="STRING",
         help="If a peer message contains this marker, exit the loop. Set to '' to disable. "
-             "Default 'FINAL:' — works with the Swarm preset's moderator prompt.",
+        "Default 'FINAL:' — works with the Swarm preset's moderator prompt.",
     )
     ap.add_argument(
         "--loop-self-cooldown",
@@ -229,7 +229,7 @@ def main() -> None:
         default=20,
         metavar="SECONDS",
         help="Minimum gap between our own posts (default: 20). Prevents immediate echo loops "
-             "where we react to a peer who was reacting to us.",
+        "where we react to a peer who was reacting to us.",
     )
     ap.add_argument(
         "--loop-quiet",
@@ -237,8 +237,8 @@ def main() -> None:
         default=8,
         metavar="SECONDS",
         help="Wait for peer messages to stop arriving for this many seconds before "
-             "generating a response (default: 8). Lets parallel peer posts batch into a "
-             "single reaction.",
+        "generating a response (default: 8). Lets parallel peer posts batch into a "
+        "single reaction.",
     )
     ap.add_argument(
         "--loop-room-cap",
@@ -246,7 +246,7 @@ def main() -> None:
         default=15,
         metavar="N",
         help="Total room message cap. If the room has more messages than this, exit "
-             "regardless of peer activity (default: 15).",
+        "regardless of peer activity (default: 15).",
     )
     ap.add_argument("--prompt", required=True, help="System prompt / task description")
 
@@ -336,9 +336,7 @@ def main() -> None:
     last_peer_msg_time = 0.0  # epoch; updated when a peer posts
     last_activity_ts = time.monotonic()  # any activity (own OR peer) for idle exit
     pending_reaction = False  # peers posted but we haven't reacted yet
-    own_recent_outputs: list[str] = [
-        m["text"] for m in history if m["author"] == args.name
-    ]
+    own_recent_outputs: list[str] = [m["text"] for m in history if m["author"] == args.name]
 
     while iterations < args.loop_max:
         time.sleep(args.loop_poll)
@@ -406,8 +404,7 @@ def main() -> None:
         iterations += 1
         try:
             full_prompt = _build_prompt(history, args.prompt, topic)
-            r.report_status(args.room, args.name, "thinking",
-                            f"Running {backend_label}")
+            r.report_status(args.room, args.name, "thinking", f"Running {backend_label}")
             if args.backend == "claude":
                 output = _run_claude(full_prompt, args.model)
             else:
@@ -416,8 +413,7 @@ def main() -> None:
 
             # Duplicate-output guard
             if any(_too_similar(output, prev) for prev in own_recent_outputs):
-                r.report_status(args.room, args.name, "done",
-                                "Duplicate output — exiting")
+                r.report_status(args.room, args.name, "done", "Duplicate output — exiting")
                 return
 
             r.report_status(args.room, args.name, "posting", "")

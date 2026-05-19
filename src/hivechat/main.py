@@ -18,6 +18,7 @@ def main() -> None:
     # here whenever bridge gains a new one (e.g. --loop, --loop-max).
     if len(sys.argv) >= 2 and sys.argv[1] == "agent":
         from .bridge import main as bridge_main
+
         bridge_main()
         return
 
@@ -35,7 +36,10 @@ def main() -> None:
 
     # Listed only for `hivechat --help` discoverability; never actually parsed
     # because the fast path above intercepts `agent` first.
-    sub.add_parser("agent", help="Run a model as a hive room participant — see hivechat agent --help")
+    sub.add_parser(
+        "agent",
+        help="Run a model as a hive room participant — see hivechat agent --help",
+    )
 
     args = parser.parse_args()
 

@@ -20,7 +20,6 @@ Reviewer flagged:
 
 import json
 import threading
-from pathlib import Path
 
 import pytest
 
@@ -29,10 +28,8 @@ from hivechat.swarm.state import (
     VALID_STATUSES,
     SwarmState,
     Task,
-    TaskHistoryEntry,
     _count_changes,
 )
-
 
 # ── Shared diffs ───────────────────────────────────────────────────────────────
 
@@ -323,7 +320,7 @@ def test_claim_task_logs_event(state):
     t = state.propose_task("T", "alice")
     state.claim_task(t.id, "bob")
     lines = state.history_path.read_text().splitlines()
-    entries = [json.loads(l) for l in lines]
+    entries = [json.loads(line) for line in lines]
     claim_entries = [e for e in entries if e["type"] == "claim_task"]
     assert len(claim_entries) == 1
     assert claim_entries[0]["payload"]["assignee"] == "bob"
@@ -412,27 +409,17 @@ def test_apply_patch_multi_hunk(tmp_path):
 
     # Hunk 1 replaces line 1 ("a") with two lines, shifting all subsequent numbers.
     # Hunk 2 replaces line 5 ("e") with "z" — correct only if offset is tracked.
-    diff = (
-        "--- design.md\n"
-        "+++ design.md\n"
-        "@@ -1,1 +1,2 @@\n"
-        "-a\n"
-        "+x\n"
-        "+y\n"
-        "@@ -5,1 +6,1 @@\n"
-        "-e\n"
-        "+z\n"
-    )
+    diff = "--- design.md\n+++ design.md\n@@ -1,1 +1,2 @@\n-a\n+x\n+y\n@@ -5,1 +6,1 @@\n-e\n+z\n"
     ok, reason = s.apply_patch(diff, "alice")
     if not ok:
         pytest.skip(f"patch CLI rejected multi-hunk diff: {reason}")
 
     content = s.get_design()
     assert "x" in content and "y" in content  # hunk 1 applied
-    assert "z" in content                     # hunk 2 applied
-    assert "a" not in content                 # original line 1 replaced
-    assert "e" not in content                 # original line 5 replaced
-    assert "d" in content                     # untouched line preserved
+    assert "z" in content  # hunk 2 applied
+    assert "a" not in content  # original line 1 replaced
+    assert "e" not in content  # original line 5 replaced
+    assert "d" in content  # untouched line preserved
 
 
 # ── log_event ─────────────────────────────────────────────────────────────────

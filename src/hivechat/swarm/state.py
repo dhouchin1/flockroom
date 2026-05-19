@@ -16,15 +16,16 @@ import os
 import subprocess
 import tempfile
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Iterator
 
 
 def _default_base() -> Path:
-    return Path(os.environ.get("HIVECHAT_SWARM_DIR", Path.home() / ".config" / "hivechat" / "swarm"))
+    fallback = Path.home() / ".config" / "hivechat" / "swarm"
+    return Path(os.environ.get("HIVECHAT_SWARM_DIR", fallback))
 
 
 # ── Task model ────────────────────────────────────────────────────────────────
@@ -32,12 +33,12 @@ def _default_base() -> Path:
 VALID_STATUSES = {"proposed", "accepted", "in_progress", "blocked", "done", "rejected"}
 
 LEGAL_TRANSITIONS: dict[str, set[str]] = {
-    "proposed":    {"accepted", "rejected"},
-    "accepted":    {"in_progress", "blocked", "rejected"},
+    "proposed": {"accepted", "rejected"},
+    "accepted": {"in_progress", "blocked", "rejected"},
     "in_progress": {"blocked", "done"},
-    "blocked":     {"in_progress", "rejected"},
-    "done":        set(),
-    "rejected":    set(),
+    "blocked": {"in_progress", "rejected"},
+    "done": set(),
+    "rejected": set(),
 }
 
 
@@ -56,7 +57,7 @@ class TaskHistoryEntry:
         return d
 
     @classmethod
-    def from_dict(cls, d: dict) -> "TaskHistoryEntry":
+    def from_dict(cls, d: dict) -> TaskHistoryEntry:
         return cls(
             ts=d["ts"],
             by=d["by"],
@@ -86,7 +87,7 @@ class Task:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> "Task":
+    def from_dict(cls, d: dict) -> Task:
         return cls(
             id=d["id"],
             title=d["title"],
@@ -98,6 +99,7 @@ class Task:
 
 
 # ── SwarmState ────────────────────────────────────────────────────────────────
+
 
 class SwarmState:
     def __init__(self, room_code: str, base_dir: Path | None = None) -> None:
@@ -111,7 +113,7 @@ class SwarmState:
 
     # ── lifecycle ──────────────────────────────────────────────────────────
 
-    def init(self, initial_design: str = "") -> "SwarmState":
+    def init(self, initial_design: str = "") -> SwarmState:
         self.base_dir.mkdir(parents=True, exist_ok=True)
         if not self.design_path.exists():
             self.design_path.write_text(initial_design)
@@ -147,11 +149,15 @@ class SwarmState:
             self.design_path.write_text(new_text)
             self._patch_version += 1
             lines_changed = _count_changes(diff)
-            self.log_event("design_patch", author, {
-                "applied": True,
-                "lines_changed": lines_changed,
-                "version": self._patch_version,
-            })
+            self.log_event(
+                "design_patch",
+                author,
+                {
+                    "applied": True,
+                    "lines_changed": lines_changed,
+                    "version": self._patch_version,
+                },
+            )
             return True, ""
 
     # ── tasks ──────────────────────────────────────────────────────────────
@@ -190,13 +196,17 @@ class SwarmState:
                         return None
                     now = time.time()
                     task.history.append(
-                        TaskHistoryEntry(ts=now, by=author, from_status=task.status, to=status, note=note)
+                        TaskHistoryEntry(
+                            ts=now, by=author, from_status=task.status, to=status, note=note
+                        )
                     )
                     task.status = status
                     # Update the dict in-place
                     td.update(task.to_dict())
                     self._write_tasks_raw(data)
-                    self.log_event("update_task", author, {"id": id, "status": status, "note": note})
+                    self.log_event(
+                        "update_task", author, {"id": id, "status": status, "note": note}
+                    )
                     return task
             return None
 
@@ -207,12 +217,12 @@ class SwarmState:
                 if td["id"] == id:
                     task = Task.from_dict(td)
                     # Transition proposed→accepted and assign
-                    allowed = LEGAL_TRANSITIONS.get(task.status, set())
-                    target = "accepted" if task.status == "proposed" else task.status
                     if task.status == "proposed":
                         now = time.time()
                         task.history.append(
-                            TaskHistoryEntry(ts=now, by=author, from_status="proposed", to="accepted")
+                            TaskHistoryEntry(
+                                ts=now, by=author, from_status="proposed", to="accepted"
+                            )
                         )
                         task.status = "accepted"
                     task.assignee = author
@@ -253,7 +263,9 @@ class SwarmState:
         lines.append(f"**Design** — `design.md` v{self._patch_version}")
         lines.append("")
         if open_tasks:
-            lines.append(f"_Open tasks remaining: {len(open_tasks)}. Send `FINAL:` to close the room._")
+            lines.append(
+                f"_Open tasks remaining: {len(open_tasks)}. Send `FINAL:` to close the room._"
+            )
         else:
             lines.append("_All tasks complete. Send `FINAL:` to close the room._")
 
@@ -270,10 +282,12 @@ class SwarmState:
 
 # ── Patch application helpers ─────────────────────────────────────────────────
 
+
 def _try_apply(current: str, diff: str) -> tuple[str, bool, str]:
     """Try to apply a unified diff to `current`. Returns (new_text, ok, reason)."""
     try:
-        import unidiff  # type: ignore[import]
+        import unidiff  # noqa: F401  # availability probe — caller uses the helper below
+
         return _apply_with_unidiff(current, diff)
     except ImportError:
         pass
@@ -297,7 +311,7 @@ def _apply_with_unidiff(current: str, diff: str) -> tuple[str, bool, str]:
             for line in hunk:
                 if line.line_type in (unidiff.LINE_TYPE_ADDED, unidiff.LINE_TYPE_CONTEXT):
                     new_lines.append(line.value)
-            lines[src_start: src_start + src_len] = new_lines
+            lines[src_start : src_start + src_len] = new_lines
 
     return "".join(lines), True, ""
 
@@ -322,6 +336,7 @@ def _apply_with_patch_cli(current: str, diff: str) -> tuple[str, bool, str]:
 
 
 def _count_changes(diff: str) -> int:
-    added = sum(1 for l in diff.splitlines() if l.startswith("+") and not l.startswith("+++"))
-    removed = sum(1 for l in diff.splitlines() if l.startswith("-") and not l.startswith("---"))
+    lines = diff.splitlines()
+    added = sum(1 for line in lines if line.startswith("+") and not line.startswith("+++"))
+    removed = sum(1 for line in lines if line.startswith("-") and not line.startswith("---"))
     return added + removed

@@ -5,7 +5,7 @@ Pure functions — no I/O. Parses text message bodies into typed Event objects.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
@@ -54,13 +54,13 @@ def parse(text: str) -> list[Event]:
         line = lines[i]
 
         if line.startswith("PROPOSE_TASK:"):
-            title = line[len("PROPOSE_TASK:"):].strip()
+            title = line[len("PROPOSE_TASK:") :].strip()
             if title:
                 events.append(ProposeTask(title=title))
             i += 1
 
         elif line.startswith("CLAIM_TASK:"):
-            raw = line[len("CLAIM_TASK:"):].strip()
+            raw = line[len("CLAIM_TASK:") :].strip()
             try:
                 events.append(ClaimTask(id=int(raw)))
             except ValueError:
@@ -68,7 +68,7 @@ def parse(text: str) -> list[Event]:
             i += 1
 
         elif line.startswith("UPDATE_TASK:"):
-            raw = line[len("UPDATE_TASK:"):].strip()
+            raw = line[len("UPDATE_TASK:") :].strip()
             parts = raw.split(None, 2)
             if len(parts) >= 2:
                 try:
@@ -93,12 +93,12 @@ def parse(text: str) -> list[Event]:
                 events.append(DesignPatch(diff=diff))
 
         elif line.startswith("COMMENT:"):
-            text_body = line[len("COMMENT:"):].strip()
+            text_body = line[len("COMMENT:") :].strip()
             events.append(Comment(text=text_body))
             i += 1
 
         elif line.startswith("FINAL:"):
-            summary = line[len("FINAL:"):].strip()
+            summary = line[len("FINAL:") :].strip()
             events.append(Final(text=summary))
             i += 1
 

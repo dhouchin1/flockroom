@@ -6,8 +6,6 @@ reviewer-flagged bugs:
   - Invalid UPDATE_TASK status is silently dropped with no event emitted
 """
 
-import pytest
-
 from hivechat.swarm.protocol import (
     ClaimTask,
     Comment,
@@ -17,7 +15,6 @@ from hivechat.swarm.protocol import (
     UpdateTask,
     parse,
 )
-
 
 # ── Empty / chatter ────────────────────────────────────────────────────────────
 
