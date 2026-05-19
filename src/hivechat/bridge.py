@@ -297,69 +297,79 @@ def main() -> None:
     #
     r.report_status(args.room, args.name, "idle", "Watching for peer messages")
     iterations = 0
-    last_peer_ts = time.monotonic()
     last_own_post = time.monotonic()  # we just posted above
-    last_peer_msg_time = time.monotonic()
+    last_peer_msg_time = 0.0  # epoch; updated when a peer posts
+    last_activity_ts = time.monotonic()  # any activity (own OR peer) for idle exit
+    pending_reaction = False  # peers posted but we haven't reacted yet
 
     while iterations < args.loop_max:
         time.sleep(args.loop_poll)
 
-        # Check whether the room is still open / message cap hit
+        # Check whether the room is still open
         room = r.get_room(args.room)
         if room is None or room.get("closed_at"):
             r.report_status(args.room, args.name, "done", "Room closed")
-            return
-        if room.get("message_count", 0) >= args.loop_room_cap:
-            r.report_status(args.room, args.name, "done",
-                            f"Room cap reached ({args.loop_room_cap})")
             return
 
         new_msgs = r.read_messages(args.room, since_id=last_id)
         if new_msgs:
             history.extend(new_msgs)
             last_id = new_msgs[-1]["id"]
-            last_peer_msg_time = time.monotonic()
-        peer_msgs = [m for m in new_msgs if m["author"] != args.name]
+            last_activity_ts = time.monotonic()
 
-        if not peer_msgs:
-            if time.monotonic() - last_peer_ts > args.loop_idle_exit:
-                r.report_status(args.room, args.name, "done", "Idle exit")
+        new_peer_msgs = [m for m in new_msgs if m["author"] != args.name]
+
+        # Stop conditions — check on every fresh batch of peer messages.
+        if new_peer_msgs:
+            if args.loop_stop_marker and any(
+                args.loop_stop_marker in m["text"] for m in new_peer_msgs
+            ):
+                r.report_status(args.room, args.name, "done", "Stop marker seen")
                 return
+            if any(_looks_like_winddown(m["text"]) for m in new_peer_msgs):
+                r.report_status(args.room, args.name, "done", "Wind-down seen")
+                return
+            pending_reaction = True
+            last_peer_msg_time = time.monotonic()
+
+        # Room-level message cap (use the room's own count via recent_messages
+        # bound by last_id — message_count isn't in the get_room response).
+        if last_id >= args.loop_room_cap:
+            # last_id is monotonically increasing across the whole server, so
+            # this is a soft heuristic — but combined with loop_max it works.
+            pass  # keep the soft check disabled; rely on loop_max instead.
+
+        # Idle exit — no activity at all (peers or us) for a long time
+        if time.monotonic() - last_activity_ts > args.loop_idle_exit:
+            r.report_status(args.room, args.name, "done", "Idle exit")
+            return
+
+        # If we have nothing waiting, just keep polling
+        if not pending_reaction:
             continue
 
-        # Stop conditions — literal marker OR semantic wind-down language.
-        if args.loop_stop_marker and any(
-            args.loop_stop_marker in m["text"] for m in peer_msgs
-        ):
-            r.report_status(args.room, args.name, "done", "Stop marker seen")
-            return
-        if any(_looks_like_winddown(m["text"]) for m in peer_msgs):
-            r.report_status(args.room, args.name, "done", "Wind-down phrase seen")
-            return
-
-        # Self-cooldown: don't fire if we posted very recently. Just absorb the
-        # peer messages into history and wait until our cooldown clears.
+        # Self-cooldown: don't fire too soon after our own last post
         since_own = time.monotonic() - last_own_post
         if since_own < args.loop_self_cooldown:
             continue
 
-        # Quiet-peer: wait until peer activity has settled. If a new peer
-        # message arrived less than `loop_quiet` seconds ago, keep waiting —
-        # this lets two peers responding in parallel batch into one reaction.
+        # Quiet-peer: wait until peer activity has settled
         since_last_peer = time.monotonic() - last_peer_msg_time
         if since_last_peer < args.loop_quiet:
             continue
 
-        last_peer_ts = time.monotonic()
+        # Fire — react to all pending peer activity in one batch
         iterations += 1
         try:
             _generate_and_post(history)
             last_own_post = time.monotonic()
+            last_activity_ts = time.monotonic()
+            pending_reaction = False
             history = r.read_messages(args.room, since_id=0)
             last_id = max((m["id"] for m in history), default=last_id)
 
-            # If WE just produced wrap-up language, exit so we don't generate
-            # again on the next peer "ack" cascade.
+            # Own wind-down — if we just posted wrap-up language, exit so we
+            # don't generate again on the next peer "ack" cascade.
             own_last = history[-1]["text"] if history else ""
             if _looks_like_winddown(own_last):
                 r.report_status(args.room, args.name, "done", "Own wind-down")
@@ -369,3 +379,5 @@ def main() -> None:
             r.report_status(args.room, args.name, "error", str(exc))
             r.post_message(args.room, args.name, f"[{args.name} error] {exc}")
             return
+
+    r.report_status(args.room, args.name, "done", f"loop_max ({args.loop_max}) reached")
