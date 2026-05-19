@@ -128,7 +128,14 @@ def main() -> None:
         help="Max seconds to wait for --wait-for-role (default: 600)",
     )
     ap.add_argument("--prompt", required=True, help="System prompt / task description")
-    args = ap.parse_args()
+
+    # When invoked via `hivechat agent ...`, sys.argv is
+    #   ['hivechat', 'agent', '--room', ...]
+    # so strip the `agent` subcommand token before parsing.
+    argv = sys.argv[1:]
+    if argv and argv[0] == "agent":
+        argv = argv[1:]
+    args = ap.parse_args(argv)
 
     # Join the room and get current history
     joined = r.join_room(args.room, args.name, args.role)
