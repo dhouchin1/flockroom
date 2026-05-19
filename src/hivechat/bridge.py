@@ -386,10 +386,13 @@ def main() -> None:
         if not pending_reaction:
             continue
 
-        # Self-cooldown: don't fire too soon after our own last post
-        since_own = time.monotonic() - last_own_post
-        if since_own < args.loop_self_cooldown:
-            continue
+        # Self-cooldown: don't fire too soon after our own last post.
+        # Skipped on iteration 0 — the cooldown exists to prevent ping-pong
+        # on later turns, not to delay the first reaction.
+        if iterations > 0:
+            since_own = time.monotonic() - last_own_post
+            if since_own < args.loop_self_cooldown:
+                continue
 
         # Quiet-peer: wait until peer activity has settled
         since_last_peer = time.monotonic() - last_peer_msg_time
