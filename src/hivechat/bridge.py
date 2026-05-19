@@ -39,6 +39,15 @@ _WIND_DOWN_PHRASES = (
     "final evaluation",
     "final verdict",
     "final answer",
+    "final ruling",
+    "final decision",
+    "final pick",
+    "final selection",
+    "final report",
+    "final result",
+    "final summary",
+    "final integration",
+    "final synthesis",
     "session complete",
     "session is complete",
     "task complete",
@@ -49,12 +58,38 @@ _WIND_DOWN_PHRASES = (
     "nothing further",
     "we are done",
     "we're done",
+    "winner is",
+    "winner:",
+    "the choice is",
+    "verdict:",
 )
 
 
 def _looks_like_winddown(text: str) -> bool:
     low = text.lower()
     return any(p in low for p in _WIND_DOWN_PHRASES)
+
+
+def _too_similar(a: str, b: str, threshold: float = 0.85) -> bool:
+    """Cheap similarity check — first 400 chars matter most.
+
+    Used to detect duplicate-output loops where the model regenerates the
+    same response because its system prompt + history haven't changed
+    enough to produce something new.
+    """
+    if not a or not b:
+        return False
+    a_norm = " ".join(a.lower().split())[:400]
+    b_norm = " ".join(b.lower().split())[:400]
+    if a_norm == b_norm:
+        return True
+    # Quick token-overlap heuristic — Jaccard on word sets
+    tokens_a = set(a_norm.split())
+    tokens_b = set(b_norm.split())
+    if not tokens_a or not tokens_b:
+        return False
+    overlap = len(tokens_a & tokens_b) / len(tokens_a | tokens_b)
+    return overlap >= threshold
 
 
 # ── model backends ─────────────────────────────────────────────────────────────
@@ -301,6 +336,9 @@ def main() -> None:
     last_peer_msg_time = 0.0  # epoch; updated when a peer posts
     last_activity_ts = time.monotonic()  # any activity (own OR peer) for idle exit
     pending_reaction = False  # peers posted but we haven't reacted yet
+    own_recent_outputs: list[str] = [
+        m["text"] for m in history if m["author"] == args.name
+    ]
 
     while iterations < args.loop_max:
         time.sleep(args.loop_poll)
@@ -358,10 +396,32 @@ def main() -> None:
         if since_last_peer < args.loop_quiet:
             continue
 
-        # Fire — react to all pending peer activity in one batch
+        # Fire — react to all pending peer activity in one batch. Generate
+        # first, then DECIDE whether to post (suppress near-duplicates of our
+        # own prior output — common when the system prompt forces the model
+        # back to the same task description).
         iterations += 1
         try:
-            _generate_and_post(history)
+            full_prompt = _build_prompt(history, args.prompt, topic)
+            r.report_status(args.room, args.name, "thinking",
+                            f"Running {backend_label}")
+            if args.backend == "claude":
+                output = _run_claude(full_prompt, args.model)
+            else:
+                model = args.model or "llama3.1:8b"
+                output = _run_openai(full_prompt, model, args.base_url, args.api_key)
+
+            # Duplicate-output guard
+            if any(_too_similar(output, prev) for prev in own_recent_outputs):
+                r.report_status(args.room, args.name, "done",
+                                "Duplicate output — exiting")
+                return
+
+            r.report_status(args.room, args.name, "posting", "")
+            r.post_message(args.room, args.name, output)
+            r.report_status(args.room, args.name, "done", "")
+            own_recent_outputs.append(output)
+
             last_own_post = time.monotonic()
             last_activity_ts = time.monotonic()
             pending_reaction = False
@@ -370,8 +430,7 @@ def main() -> None:
 
             # Own wind-down — if we just posted wrap-up language, exit so we
             # don't generate again on the next peer "ack" cascade.
-            own_last = history[-1]["text"] if history else ""
-            if _looks_like_winddown(own_last):
+            if _looks_like_winddown(output):
                 r.report_status(args.room, args.name, "done", "Own wind-down")
                 return
 
