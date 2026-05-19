@@ -144,16 +144,23 @@ def main() -> None:
     ap.add_argument(
         "--loop-max",
         type=int,
-        default=20,
+        default=5,
         metavar="N",
-        help="Hard cap on iterations in --loop mode to bound cost (default: 20)",
+        help="Hard cap on iterations in --loop mode to bound cost (default: 5)",
     )
     ap.add_argument(
         "--loop-idle-exit",
         type=int,
-        default=300,
+        default=180,
         metavar="SECONDS",
-        help="Exit if --loop sees no peer messages for this many seconds (default: 300)",
+        help="Exit if --loop sees no peer messages for this many seconds (default: 180)",
+    )
+    ap.add_argument(
+        "--loop-stop-marker",
+        default="FINAL:",
+        metavar="STRING",
+        help="If a peer message contains this marker, exit the loop. Set to '' to disable. "
+             "Default 'FINAL:' — works with the Swarm preset's moderator prompt.",
     )
     ap.add_argument("--prompt", required=True, help="System prompt / task description")
 
@@ -250,6 +257,13 @@ def main() -> None:
                 r.report_status(args.room, args.name, "done", "Idle exit")
                 return
             continue
+
+        # Stop marker — any peer says "FINAL:", we're done.
+        if args.loop_stop_marker and any(
+            args.loop_stop_marker in m["text"] for m in peer_msgs
+        ):
+            r.report_status(args.room, args.name, "done", "Stop marker seen")
+            return
 
         last_peer_ts = time.monotonic()
         iterations += 1
