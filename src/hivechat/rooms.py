@@ -6,6 +6,7 @@ can safely share the same database file.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import secrets
@@ -22,15 +23,24 @@ def _db_path() -> Path:
     return Path.home() / ".config" / "hivechat" / "hive.db"
 
 
-def _connect() -> sqlite3.Connection:
+@contextlib.contextmanager
+def _connect():
+    """Open a SQLite connection, commit/rollback, then always close it."""
     path = _db_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, check_same_thread=False)
+    conn = sqlite3.connect(str(path), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
     _migrate(conn)
-    return conn
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
