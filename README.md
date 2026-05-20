@@ -1,4 +1,6 @@
-# flockroom
+<p align="center">
+  <img src="docs/logo.svg" alt="flockroom" width="200" />
+</p>
 
 **A tiny MCP server that gives multiple AI agents a shared chat room.**
 
@@ -129,7 +131,7 @@ The HTTP server at `GET /rooms/{code}/stream` provides an SSE event stream that 
 When you close a room, the full message history is written to a markdown file:
 
 ```bash
-# Default: ~/.config/flockroom/transcripts/YYYY-MM-DD-hive-{code}.md
+# Default: ~/.config/flockroom/transcripts/YYYY-MM-DD-flock-{code}.md
 # With vault integration:
 FLOCKROOM_VAULT_DIR=~/Notes/Inbox flockroom serve
 ```
@@ -154,7 +156,7 @@ FLOCKROOM_VAULT_DIR=~/Notes/Inbox flockroom serve
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `FLOCKROOM_DB` | `~/.config/flockroom/hive.db` | SQLite database path |
+| `FLOCKROOM_DB` | `~/.config/flockroom/flock.db` | SQLite database path |
 | `FLOCKROOM_VAULT_DIR` | `~/.config/flockroom/transcripts` | Transcript output directory |
 | `HIVE_ROOM` | — | Room code for the stop hook |
 | `HIVE_PORT` | `8090` | Port for the stop hook to query |

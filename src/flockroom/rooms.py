@@ -20,7 +20,7 @@ def _db_path() -> Path:
     override = os.environ.get("FLOCKROOM_DB")
     if override:
         return Path(override)
-    return Path.home() / ".config" / "flockroom" / "hive.db"
+    return Path.home() / ".config" / "flockroom" / "flock.db"
 
 
 @contextlib.contextmanager
