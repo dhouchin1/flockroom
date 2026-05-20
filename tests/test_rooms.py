@@ -1,6 +1,6 @@
 """Unit tests for the rooms module."""
 
-from hivechat import rooms
+from flockroom import rooms
 
 
 def test_create_room():
@@ -127,7 +127,7 @@ def test_close_room_writes_transcript(tmp_path):
     transcript_path = result["transcript_path"]
     content = open(transcript_path).read()
     assert "Let's begin" in content
-    assert "hive-session" in content
+    assert "flock-session" in content
 
 
 def test_closed_room_not_in_listing():

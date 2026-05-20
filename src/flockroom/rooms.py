@@ -17,10 +17,10 @@ from pathlib import Path
 
 
 def _db_path() -> Path:
-    override = os.environ.get("HIVECHAT_DB")
+    override = os.environ.get("FLOCKROOM_DB")
     if override:
         return Path(override)
-    return Path.home() / ".config" / "hivechat" / "hive.db"
+    return Path.home() / ".config" / "flockroom" / "hive.db"
 
 
 @contextlib.contextmanager
@@ -270,7 +270,7 @@ def write_checkpoint(
             },
         )
 
-    vault_dir = os.environ.get("HIVECHAT_VAULT_DIR")
+    vault_dir = os.environ.get("FLOCKROOM_VAULT_DIR")
     if vault_dir:
         out_dir = Path(vault_dir)
     else:
@@ -322,7 +322,7 @@ def close_room(code: str) -> dict | None:
 def _write_transcript(code: str, room: dict, messages: list[dict]) -> Path:
     import datetime
 
-    vault_dir = os.environ.get("HIVECHAT_VAULT_DIR")
+    vault_dir = os.environ.get("FLOCKROOM_VAULT_DIR")
     if vault_dir:
         out_dir = Path(vault_dir)
     else:
@@ -331,18 +331,18 @@ def _write_transcript(code: str, room: dict, messages: list[dict]) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     date = datetime.datetime.now().strftime("%Y-%m-%d")
-    path = out_dir / f"{date}-hive-{code}.md"
+    path = out_dir / f"{date}-flock-{code}.md"
 
     lines = [
         "---",
-        "type: hive-session",
+        "type: flock-session",
         f"room_code: {code}",
         f"topic: {room.get('topic', '')}",
         f"date: {date}",
-        "tags: [hive, multi-agent]",
+        "tags: [flock, multi-agent]",
         "---",
         "",
-        f"# Hive: {room.get('topic') or code}",
+        f"# Flock: {room.get('topic') or code}",
         "",
     ]
     for m in messages:

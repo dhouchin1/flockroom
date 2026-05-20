@@ -1,4 +1,4 @@
-"""Unit tests for hivechat.swarm.state.
+"""Unit tests for flockroom.swarm.state.
 
 Covers all SwarmState methods, all legal/illegal task transitions, patch
 application, concurrent writes, and regression tests for every issue the
@@ -23,7 +23,7 @@ import threading
 
 import pytest
 
-from hivechat.swarm.state import (
+from flockroom.swarm.state import (
     LEGAL_TRANSITIONS,
     VALID_STATUSES,
     SwarmState,
@@ -516,7 +516,7 @@ def test_count_changes_context_lines_not_counted():
 
 
 def test_valid_statuses_matches_protocol():
-    from hivechat.swarm.protocol import VALID_STATUSES as proto_statuses
+    from flockroom.swarm.protocol import VALID_STATUSES as proto_statuses
 
     # Reviewer-flagged MINOR: VALID_STATUSES is defined identically in both modules.
     # Verify they stay in sync; a mismatch means one was edited without the other.

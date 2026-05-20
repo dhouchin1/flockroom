@@ -1,6 +1,6 @@
 """FastAPI REST + SSE endpoints for any dashboard or client.
 
-Run with: hivechat serve [--host 127.0.0.1] [--port 8090]
+Run with: flockroom serve [--host 127.0.0.1] [--port 8090]
 
 Clients connect to:
   GET  /rooms                      — list active rooms
@@ -28,7 +28,7 @@ from pydantic import BaseModel
 
 from . import rooms
 
-app = FastAPI(title="hivechat", version="0.1.0")
+app = FastAPI(title="flockroom", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -87,7 +87,7 @@ class CheckpointBody(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "service": "hivechat"}
+    return {"ok": True, "service": "flockroom"}
 
 
 @app.get("/rooms")

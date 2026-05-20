@@ -1,10 +1,24 @@
-# hivechat
+# flockroom
 
-A tiny MCP server that gives multiple AI agents a shared chat room.
+**A tiny MCP server that gives multiple AI agents a shared chat room.**
 
-Any MCP-speaking client — Claude Code, Cursor, Codex, Gemini CLI, or a browser UI — can join the same room with a 9-character code. They see each other's messages, they can reply, and you can sit in the room too.
+Three Claude Code sessions, a Cursor window, and a browser tab can all join the same room with a 9-character code. They see each other's messages. They reply. You sit in the room too.
 
-The room doesn't do anything clever. It's not a router or an orchestrator. The intelligence stays in each agent.
+![Three agents reacting in a swarm](docs/swarm-loop.gif)
+
+The room itself doesn't do anything clever. It's not a router or an orchestrator. No framework — just a shared channel over MCP. The intelligence stays in each agent.
+
+## What this unlocks
+
+- **Two Claude Code sessions in different repos, collaborating in real time** — via a stop hook that injects new messages on every turn boundary. No polling, no clipboard.
+- **Proposer / critic / moderator swarms** you watch react to each other live in a browser viewer with per-agent status, tool-call trails, and progress checkpoints.
+- **A markdown transcript of every multi-agent run**, dropped straight into your notes vault when the room closes.
+
+## Who this is for
+
+- Devs running multiple AI coding agents who want them to talk to each other instead of through the clipboard.
+- People experimenting with multi-agent setups who want a substrate, not a framework.
+- Anyone who'd rather read 1700 lines of Python than install a heavyweight orchestration platform.
 
 ![Architecture](docs/architecture.svg)
 
@@ -13,9 +27,9 @@ The room doesn't do anything clever. It's not a router or an orchestrator. The i
 ## Install
 
 ```bash
-pip install hivechat
+pip install flockroom
 # or for development:
-git clone https://github.com/dhouchin1/hivechat && cd hivechat
+git clone https://github.com/dhouchin1/flockroom && cd flockroom
 pip install -e .
 ```
 
@@ -23,16 +37,16 @@ pip install -e .
 
 **Run the HTTP server** (for dashboard integration and the stop hook):
 ```bash
-hivechat serve               # binds to 127.0.0.1:8090
-hivechat serve --port 9000   # custom port
+flockroom serve               # binds to 127.0.0.1:8090
+flockroom serve --port 9000   # custom port
 ```
 
 **Add to Claude Code / Cursor** as an MCP server (`~/.claude/settings.json`):
 ```json
 {
   "mcpServers": {
-    "hivechat": {
-      "command": "hivechat",
+    "flockroom": {
+      "command": "flockroom",
       "args": ["mcp"]
     }
   }
@@ -43,9 +57,9 @@ hivechat serve --port 9000   # custom port
 ```json
 {
   "mcpServers": {
-    "hivechat": {
+    "flockroom": {
       "command": "uvx",
-      "args": ["hivechat", "mcp"]
+      "args": ["flockroom", "mcp"]
     }
   }
 }
@@ -73,7 +87,7 @@ The stop hook fires on every agent turn boundary. If there are new messages in t
     "Stop": [{
       "hooks": [{
         "type": "command",
-        "command": "/path/to/hivechat/hooks/hive_check.sh"
+        "command": "/path/to/flockroom/hooks/flock_check.sh"
       }]
     }]
   }
@@ -87,10 +101,10 @@ HIVE_ROOM=abc3def7g claude   # agent auto-checks for new messages each turn
 
 ## Browser viewer
 
-A single self-contained HTML file lives at [`web/viewer.html`](web/viewer.html). Open it in any browser after running `hivechat serve` — it subscribes to the SSE stream for live thread updates, an agent status bar, and an activity feed, and lets you post into the room as a `viewer` participant.
+A single self-contained HTML file lives at [`web/viewer.html`](web/viewer.html). Open it in any browser after running `flockroom serve` — it subscribes to the SSE stream for live thread updates, an agent status bar, and an activity feed, and lets you post into the room as a `viewer` participant.
 
 ```bash
-hivechat serve &
+flockroom serve &
 open web/viewer.html       # macOS — or just double-click it
 ```
 
@@ -115,9 +129,9 @@ The HTTP server at `GET /rooms/{code}/stream` provides an SSE event stream that 
 When you close a room, the full message history is written to a markdown file:
 
 ```bash
-# Default: ~/.config/hivechat/transcripts/YYYY-MM-DD-hive-{code}.md
+# Default: ~/.config/flockroom/transcripts/YYYY-MM-DD-hive-{code}.md
 # With vault integration:
-HIVECHAT_VAULT_DIR=~/Notes/Inbox hivechat serve
+FLOCKROOM_VAULT_DIR=~/Notes/Inbox flockroom serve
 ```
 
 ## HTTP API
@@ -140,27 +154,27 @@ HIVECHAT_VAULT_DIR=~/Notes/Inbox hivechat serve
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `HIVECHAT_DB` | `~/.config/hivechat/hive.db` | SQLite database path |
-| `HIVECHAT_VAULT_DIR` | `~/.config/hivechat/transcripts` | Transcript output directory |
+| `FLOCKROOM_DB` | `~/.config/flockroom/hive.db` | SQLite database path |
+| `FLOCKROOM_VAULT_DIR` | `~/.config/flockroom/transcripts` | Transcript output directory |
 | `HIVE_ROOM` | — | Room code for the stop hook |
 | `HIVE_PORT` | `8090` | Port for the stop hook to query |
 | `HIVE_HOST` | `127.0.0.1` | Host for the stop hook to query |
 
-## Screenshots
+## Record your own swarm
 
-> Placeholders below — capture once you have a swarm running locally. Paths are pre-wired; just drop the files in `docs/` and they'll render here.
+The GIF at the top of this README is captured from a real local run, scripted for ~10 seconds. Reproduce it:
 
-**Viewer mid-swarm — live thread, status bar, activity feed:**
-![viewer in action](docs/viewer-screenshot.png)
+```bash
+flockroom serve &
+open web/viewer.html         # paste the room code when the script prints it
+./scripts/demo-swarm.sh      # drives a proposer / critic / moderator swarm
+```
 
-**Three-agent swarm reacting in a loop:**
-![swarm GIF](docs/swarm-loop.gif)
-
-### How to capture them
+Or roll a live swarm with three model-backed agents:
 
 ```bash
 # 1. Start the server and viewer
-hivechat serve &
+flockroom serve &
 open web/viewer.html
 
 # 2. In another shell, kick off a swarm — three agents reacting to each other
@@ -169,7 +183,7 @@ ROOM=$(curl -s -X POST http://127.0.0.1:8090/rooms \
   -d '{"topic":"Pick the best name for a small chat router"}' | jq -r .code)
 
 for ROLE in proposer critic moderator; do
-  hivechat agent --room "$ROOM" --name "$ROLE" --role "$ROLE" \
+  flockroom agent --room "$ROOM" --name "$ROLE" --role "$ROLE" \
     --backend claude --model claude-haiku-4-5 \
     --loop --loop-max 3 \
     --prompt "You are the $ROLE. React to peers; emit FINAL: when you're done." &

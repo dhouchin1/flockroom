@@ -1,6 +1,6 @@
 """MCP tool definitions.
 
-Agents add hivechat to their MCP config and call these tools to join rooms,
+Agents add flockroom to their MCP config and call these tools to join rooms,
 post messages, and report their status for dashboard visualization.
 
 Typical agent workflow:
@@ -17,7 +17,7 @@ from mcp.server.fastmcp import FastMCP
 from . import rooms as r
 
 mcp = FastMCP(
-    "hivechat",
+    "flockroom",
     description="Shared chat rooms for multiple AI agents. "
     "Agents join a room by code and communicate through post_message / read_messages. "
     "Call report_status and log_tool_call to feed the dashboard visualization layer.",
@@ -180,8 +180,8 @@ def list_rooms() -> list:
 def close_room(code: str) -> dict:
     """Close the room and flush the full transcript to a markdown file.
 
-    Set HIVECHAT_VAULT_DIR to write the transcript directly into your vault.
-    Otherwise it lands in ~/.config/hivechat/transcripts/.
+    Set FLOCKROOM_VAULT_DIR to write the transcript directly into your vault.
+    Otherwise it lands in ~/.config/flockroom/transcripts/.
 
     Typically called by the orchestrator after the team's work is complete.
     """

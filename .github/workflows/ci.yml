@@ -55,7 +55,7 @@ jobs:
       - name: Smoke-test the CLI entry point
         run: |
           pip install dist/*.whl
-          hivechat --help
+          flockroom --help
       - uses: actions/upload-artifact@v4
         with:
           name: dist

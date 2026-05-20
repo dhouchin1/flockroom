@@ -1,4 +1,4 @@
-"""Unit tests for hivechat.swarm.protocol.
+"""Unit tests for flockroom.swarm.protocol.
 
 Covers every event type, edge cases, and regression tests for the two
 reviewer-flagged bugs:
@@ -6,7 +6,7 @@ reviewer-flagged bugs:
   - Invalid UPDATE_TASK status is silently dropped with no event emitted
 """
 
-from hivechat.swarm.protocol import (
+from flockroom.swarm.protocol import (
     ClaimTask,
     Comment,
     DesignPatch,

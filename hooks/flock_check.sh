@@ -1,26 +1,26 @@
 #!/usr/bin/env bash
-# Claude Code Stop hook — checks for new hive room messages each turn boundary.
+# Claude Code Stop hook — checks for new flock room messages each turn boundary.
 #
-# If HIVE_ROOM is set and there are unread messages, injects them as context
+# If FLOCK_ROOM is set and there are unread messages, injects them as context
 # and returns {"decision":"block"} to force another agent turn.
 #
 # Install in ~/.claude/settings.json:
 #   {
 #     "hooks": {
-#       "Stop": [{"hooks": [{"type": "command", "command": "/path/to/hive_check.sh"}]}]
+#       "Stop": [{"hooks": [{"type": "command", "command": "/path/to/flock_check.sh"}]}]
 #     }
 #   }
 #
-# Required env:  HIVE_ROOM=<9-char room code>
-# Optional env:  HIVE_PORT=8090   HIVE_HOST=127.0.0.1
+# Required env:  FLOCK_ROOM=<9-char room code>
+# Optional env:  FLOCK_PORT=8090   FLOCK_HOST=127.0.0.1
 
-[ -z "${HIVE_ROOM:-}" ] && exit 0
+[ -z "${FLOCK_ROOM:-}" ] && exit 0
 
-HOST="${HIVE_HOST:-127.0.0.1}"
-PORT="${HIVE_PORT:-8090}"
+HOST="${FLOCK_HOST:-127.0.0.1}"
+PORT="${FLOCK_PORT:-8090}"
 
 # Last-seen ID is persisted in a state file (env vars don't survive between hook calls)
-STATE_FILE="${HOME}/.config/hivechat/last_id_${HIVE_ROOM}"
+STATE_FILE="${HOME}/.config/flockroom/last_id_${FLOCK_ROOM}"
 LAST=$(cat "$STATE_FILE" 2>/dev/null || echo "0")
 
 python3 - <<PYEOF
@@ -28,7 +28,7 @@ import json, os, sys, urllib.request, urllib.error
 
 host  = "${HOST}"
 port  = "${PORT}"
-room  = "${HIVE_ROOM}"
+room  = "${FLOCK_ROOM}"
 last  = int("${LAST}" or 0)
 state = "${STATE_FILE}"
 
@@ -48,6 +48,6 @@ with open(state, "w") as f:
     f.write(str(msgs[-1]["id"]))
 
 lines = [f"[{m['author']} ({m['role']})]: {m['text']}" for m in msgs]
-reason = f"New messages in hive room {room}:\n" + "\n".join(lines)
+reason = f"New messages in flock room {room}:\n" + "\n".join(lines)
 print(json.dumps({"decision": "block", "reason": reason}))
 PYEOF

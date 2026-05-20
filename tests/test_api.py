@@ -2,7 +2,7 @@
 
 from fastapi.testclient import TestClient
 
-from hivechat.api import app
+from flockroom.api import app
 
 client = TestClient(app)
 

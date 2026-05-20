@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "hivechat"
+name = "flockroom"
 version = "0.1.0"
 description = "Tiny MCP server giving multiple AI agents a shared chat room"
 readme = "README.md"
@@ -16,10 +16,10 @@ dependencies = [
 ]
 
 [project.scripts]
-hivechat = "hivechat.main:main"
+flockroom = "flockroom.main:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/hivechat"]
+packages = ["src/flockroom"]
 
 [tool.hatch.envs.default]
 dependencies = [

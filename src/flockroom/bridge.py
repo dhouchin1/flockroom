@@ -1,4 +1,4 @@
-"""hivechat bridge agent — run any model as a hive participant.
+"""flockroom bridge agent — run any model as a hive participant.
 
 Supported backends:
   claude   — claude --print [--model <id>] <prompt>  (default)
@@ -10,7 +10,7 @@ the room until an agent with that role has posted before processing — this
 is what makes true sequential cascade topologies work.
 
 Typical invocation:
-  hivechat agent --room <code> --name "Implementer" --role implementer \\
+  flockroom agent --room <code> --name "Implementer" --role implementer \\
                  --backend claude --model claude-sonnet-4-6 \\
                  --wait-for-role preprocessor \\
                  --prompt "Implement the solution based on the analysis above."
@@ -148,7 +148,7 @@ def _build_prompt(history: list[dict], system_prompt: str, topic: str) -> str:
 
 def main() -> None:
     ap = ArgumentParser(
-        prog="hivechat agent",
+        prog="flockroom agent",
         description="Run a model as a hive room participant",
     )
     ap.add_argument("--room", required=True, help="9-character room code")
@@ -250,8 +250,8 @@ def main() -> None:
     )
     ap.add_argument("--prompt", required=True, help="System prompt / task description")
 
-    # When invoked via `hivechat agent ...`, sys.argv is
-    #   ['hivechat', 'agent', '--room', ...]
+    # When invoked via `flockroom agent ...`, sys.argv is
+    #   ['flockroom', 'agent', '--room', ...]
     # so strip the `agent` subcommand token before parsing.
     argv = sys.argv[1:]
     if argv and argv[0] == "agent":

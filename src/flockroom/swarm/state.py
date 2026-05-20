@@ -24,8 +24,8 @@ from pathlib import Path
 
 
 def _default_base() -> Path:
-    fallback = Path.home() / ".config" / "hivechat" / "swarm"
-    return Path(os.environ.get("HIVECHAT_SWARM_DIR", fallback))
+    fallback = Path.home() / ".config" / "flockroom" / "swarm"
+    return Path(os.environ.get("FLOCKROOM_SWARM_DIR", fallback))
 
 
 # ── Task model ────────────────────────────────────────────────────────────────
