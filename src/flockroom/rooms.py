@@ -77,12 +77,48 @@ def _migrate(conn: sqlite3.Connection) -> None:
     CREATE INDEX IF NOT EXISTS idx_msg_room   ON messages(room_code, id);
     CREATE INDEX IF NOT EXISTS idx_evt_room   ON room_events(room_code, id);
     """)
+
+    # ── additive migrations ──────────────────────────────────────────────────
+    # Each ALTER is wrapped so re-running on an already-migrated DB is a no-op.
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(messages)").fetchall()}
+    if "kind" not in cols:
+        conn.execute("ALTER TABLE messages ADD COLUMN kind TEXT NOT NULL DEFAULT 'chat'")
+
     conn.commit()
 
 
 def _make_code() -> str:
     alphabet = string.ascii_lowercase + string.digits
     return "".join(secrets.choice(alphabet) for _ in range(9))
+
+
+# Maps a swarm-protocol line prefix to the message `kind` used for rendering.
+# Mirrors the event prefixes parsed in swarm/protocol.py.
+_KIND_PREFIXES: tuple[tuple[str, str], ...] = (
+    ("PROPOSE_TASK:", "propose_task"),
+    ("CLAIM_TASK:", "claim_task"),
+    ("UPDATE_TASK:", "update_task"),
+    ("DESIGN_PATCH:", "design_patch"),
+    ("COMMENT:", "comment"),
+    ("FINAL:", "final"),
+)
+
+
+def _infer_kind(text: str) -> str:
+    """Derive a message kind from a swarm-protocol prefix, else 'chat'.
+
+    Looks at the first non-blank line so messages produced by swarm agents are
+    classified without the caller having to pass `kind` explicitly.
+    """
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        for prefix, kind in _KIND_PREFIXES:
+            if stripped.startswith(prefix):
+                return kind
+        break
+    return "chat"
 
 
 def _emit(conn: sqlite3.Connection, code: str, type_: str, agent: str, data: dict) -> None:
@@ -130,7 +166,16 @@ def join_room(code: str, name: str, role: str = "assistant") -> dict | None:
     }
 
 
-def post_message(code: str, author: str, text: str) -> dict | None:
+def post_message(code: str, author: str, text: str, kind: str | None = None) -> dict | None:
+    """Post a chat message.
+
+    `kind` tags the message so the viewer can render swarm message types
+    (propose_task, claim_task, design_patch, comment, final, …) distinctly.
+    When omitted it is inferred from the swarm-protocol prefix, falling back
+    to 'chat'.
+    """
+    if kind is None:
+        kind = _infer_kind(text)
     with _connect() as conn:
         if not conn.execute(
             "SELECT 1 FROM rooms WHERE code=? AND closed_at IS NULL", (code,)
@@ -142,12 +187,18 @@ def post_message(code: str, author: str, text: str) -> dict | None:
         role = p["role"] if p else "assistant"
         ts = time.time()
         cur = conn.execute(
-            "INSERT INTO messages (room_code, author, role, text, ts) VALUES (?,?,?,?,?)",
-            (code, author, role, text, ts),
+            "INSERT INTO messages (room_code, author, role, text, ts, kind) VALUES (?,?,?,?,?,?)",
+            (code, author, role, text, ts, kind),
         )
         msg_id = cur.lastrowid
-        _emit(conn, code, "message", author, {"id": msg_id, "role": role, "text": text})
-    return {"id": msg_id, "author": author, "role": role, "text": text, "ts": ts}
+        _emit(
+            conn,
+            code,
+            "message",
+            author,
+            {"id": msg_id, "role": role, "text": text, "kind": kind},
+        )
+    return {"id": msg_id, "author": author, "role": role, "text": text, "ts": ts, "kind": kind}
 
 
 def read_messages(code: str, since_id: int = 0) -> list[dict]:

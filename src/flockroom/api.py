@@ -53,6 +53,7 @@ class JoinBody(BaseModel):
 class MessageBody(BaseModel):
     author: str
     text: str
+    kind: str | None = None
 
 
 class StatusBody(BaseModel):
@@ -123,7 +124,7 @@ def get_messages(code: str, since_id: int = 0):
 
 @app.post("/rooms/{code}/messages", status_code=201)
 def post_message(code: str, body: MessageBody):
-    result = rooms.post_message(code, body.author, body.text)
+    result = rooms.post_message(code, body.author, body.text, body.kind)
     if result is None:
         raise HTTPException(404, f"Room '{code}' not found or closed")
     return result

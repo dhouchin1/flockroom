@@ -140,6 +140,27 @@
     font: inherit;
   }
 
+  /* Swarm message kinds — a coloured left rail + a small kind badge so the
+     different swarm event types are distinguishable from plain chat. */
+  .msg.kind-propose_task { border-left: 3px solid var(--accent); }
+  .msg.kind-claim_task   { border-left: 3px solid var(--green); }
+  .msg.kind-update_task  { border-left: 3px solid var(--amber); }
+  .msg.kind-design_patch { border-left: 3px solid var(--purple); }
+  .msg.kind-comment      { border-left: 3px solid var(--muted); }
+  .msg.kind-final        { border-left: 3px solid var(--green); background: var(--panel-2); }
+  .msg .kind-badge {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 1px 5px; border-radius: 3px; font-weight: 600;
+    background: var(--panel-2); color: var(--muted);
+  }
+  .msg.kind-propose_task .kind-badge { color: var(--accent); }
+  .msg.kind-claim_task   .kind-badge { color: var(--green); }
+  .msg.kind-update_task  .kind-badge { color: var(--amber); }
+  .msg.kind-design_patch .kind-badge { color: var(--purple); }
+  .msg.kind-final        .kind-badge { color: var(--green); }
+  /* design_patch bodies are diffs — render them monospaced. */
+  .msg.kind-design_patch pre { font-family: var(--mono); font-size: 12px; }
+
   .activity-item {
     font-size: 12px; color: var(--muted);
     padding: 6px 8px; border-radius: 4px;
@@ -302,15 +323,29 @@
     if (e) e.remove();
   }
 
+  // Known swarm message kinds → human label for the kind badge.
+  // Anything not listed here (including "chat") renders as a plain bubble.
+  const KIND_LABELS = {
+    propose_task: "proposed task",
+    claim_task:   "claimed task",
+    update_task:  "task update",
+    design_patch: "design patch",
+    comment:      "comment",
+    final:        "final",
+  };
+
   function addMessage(ev) {
     clearEmpty(els.thread);
     state.threadEmpty = false;
+    const kind = ev.kind || "chat";
+    const label = KIND_LABELS[kind];
     const div = document.createElement("div");
-    div.className = "msg";
+    div.className = "msg" + (label ? " kind-" + kind : "");
     div.innerHTML = `
       <div class="head">
         <span class="author"></span>
         <span class="role-badge"></span>
+        <span class="kind-badge"></span>
         <span class="time"></span>
       </div>
       <pre></pre>
@@ -318,6 +353,8 @@
     div.querySelector(".author").textContent = ev.author || ev.agent || "?";
     const roleBadge = div.querySelector(".role-badge");
     if (ev.role) roleBadge.textContent = ev.role; else roleBadge.remove();
+    const kindBadge = div.querySelector(".kind-badge");
+    if (label) kindBadge.textContent = label; else kindBadge.remove();
     div.querySelector(".time").textContent = ts(ev.ts);
     div.querySelector("pre").textContent = ev.text || "";
     els.thread.appendChild(div);
