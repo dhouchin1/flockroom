@@ -43,6 +43,46 @@ def test_post_and_read_messages():
     assert msgs[0]["text"] == "Hello team!"
 
 
+def test_post_message_defaults_to_chat_kind():
+    code = rooms.create_room()["code"]
+    rooms.join_room(code, "alice", "orchestrator")
+    msg = rooms.post_message(code, "alice", "just a normal message")
+    assert msg["kind"] == "chat"
+    assert rooms.read_messages(code)[0]["kind"] == "chat"
+
+
+def test_post_message_infers_swarm_kind_from_prefix():
+    code = rooms.create_room()["code"]
+    rooms.join_room(code, "alice", "orchestrator")
+    cases = {
+        "PROPOSE_TASK: wire up auth": "propose_task",
+        "CLAIM_TASK: 3": "claim_task",
+        "UPDATE_TASK: 3 done shipped": "update_task",
+        "COMMENT: looks good": "comment",
+        "FINAL: all wrapped up": "final",
+        "DESIGN_PATCH:\n--- a\n+++ b": "design_patch",
+    }
+    for text, expected in cases.items():
+        msg = rooms.post_message(code, "alice", text)
+        assert msg["kind"] == expected, text
+
+
+def test_post_message_explicit_kind_overrides_inference():
+    code = rooms.create_room()["code"]
+    rooms.join_room(code, "alice", "orchestrator")
+    msg = rooms.post_message(code, "alice", "PROPOSE_TASK: x", kind="chat")
+    assert msg["kind"] == "chat"
+
+
+def test_message_event_carries_kind():
+    code = rooms.create_room()["code"]
+    rooms.join_room(code, "alice", "orchestrator")
+    rooms.post_message(code, "alice", "COMMENT: hi")
+    events = rooms.get_events(code)
+    msg_events = [e for e in events if e["type"] == "message"]
+    assert msg_events[0]["data"]["kind"] == "comment"
+
+
 def test_read_messages_since_id():
     code = rooms.create_room()["code"]
     rooms.join_room(code, "alice", "orchestrator")
