@@ -2,7 +2,7 @@
 
 flockroom mcp           — run as MCP stdio server (add to Claude Code / Cursor config)
 flockroom serve         — run HTTP REST+SSE server for dashboard integration
-flockroom serve --port  — custom port (default 8090)
+flockroom serve --port  — custom port (default 8099)
 flockroom agent ...     — bridge agent runner (see flockroom/bridge.py for flags)
 """
 
@@ -32,7 +32,7 @@ def main() -> None:
 
     http_p = sub.add_parser("serve", help="Run HTTP REST+SSE server for dashboard")
     http_p.add_argument("--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1)")
-    http_p.add_argument("--port", type=int, default=8090, help="Bind port (default: 8090)")
+    http_p.add_argument("--port", type=int, default=8099, help="Bind port (default: 8099)")
 
     # Listed only for `flockroom --help` discoverability; never actually parsed
     # because the fast path above intercepts `agent` first.

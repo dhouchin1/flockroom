@@ -12,12 +12,12 @@
 #   }
 #
 # Required env:  FLOCK_ROOM=<9-char room code>
-# Optional env:  FLOCK_PORT=8090   FLOCK_HOST=127.0.0.1
+# Optional env:  FLOCK_PORT=8099   FLOCK_HOST=127.0.0.1
 
 [ -z "${FLOCK_ROOM:-}" ] && exit 0
 
 HOST="${FLOCK_HOST:-127.0.0.1}"
-PORT="${FLOCK_PORT:-8090}"
+PORT="${FLOCK_PORT:-8099}"
 
 # Last-seen ID is persisted in a state file (env vars don't survive between hook calls)
 STATE_FILE="${HOME}/.config/flockroom/last_id_${FLOCK_ROOM}"

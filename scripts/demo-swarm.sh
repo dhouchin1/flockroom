@@ -14,7 +14,7 @@
 set -euo pipefail
 
 HOST="${FLOCK_HOST:-127.0.0.1}"
-PORT="${FLOCK_PORT:-8090}"
+PORT="${FLOCK_PORT:-8099}"
 BASE="http://${HOST}:${PORT}"
 
 post() { curl -s -X POST "$BASE$1" -H 'Content-Type: application/json' -d "$2" >/dev/null; }

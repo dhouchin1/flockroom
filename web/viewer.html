@@ -186,7 +186,7 @@
   </span>
 
   <div class="controls">
-    <input id="server-url" value="http://127.0.0.1:8090" size="22"
+    <input id="server-url" value="http://127.0.0.1:8099" size="22"
            title="flockroom server URL" />
     <input id="room-code" placeholder="room code" size="11" maxlength="9" />
     <button id="join-btn">Join</button>
@@ -239,7 +239,7 @@
   };
 
   const state = {
-    server: localStorage.getItem("hc.server") || "http://127.0.0.1:8090",
+    server: localStorage.getItem("hc.server") || "http://127.0.0.1:8099",
     code: null,
     es: null,
     agents: new Map(),   // name -> {role, status, action}

@@ -1,6 +1,6 @@
 """FastAPI REST + SSE endpoints for any dashboard or client.
 
-Run with: flockroom serve [--host 127.0.0.1] [--port 8090]
+Run with: flockroom serve [--host 127.0.0.1] [--port 8099]
 
 Clients connect to:
   GET  /rooms                      — list active rooms

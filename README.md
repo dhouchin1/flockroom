@@ -39,7 +39,7 @@ pip install -e .
 
 **Run the HTTP server** (for dashboard integration and the stop hook):
 ```bash
-flockroom serve               # binds to 127.0.0.1:8090
+flockroom serve               # binds to 127.0.0.1:8099
 flockroom serve --port 9000   # custom port
 ```
 
@@ -159,7 +159,7 @@ FLOCKROOM_VAULT_DIR=~/Notes/Inbox flockroom serve
 | `FLOCKROOM_DB` | `~/.config/flockroom/flock.db` | SQLite database path |
 | `FLOCKROOM_VAULT_DIR` | `~/.config/flockroom/transcripts` | Transcript output directory |
 | `HIVE_ROOM` | — | Room code for the stop hook |
-| `HIVE_PORT` | `8090` | Port for the stop hook to query |
+| `HIVE_PORT` | `8099` | Port for the stop hook to query |
 | `HIVE_HOST` | `127.0.0.1` | Host for the stop hook to query |
 
 ## Record your own swarm
@@ -180,7 +180,7 @@ flockroom serve &
 open web/viewer.html
 
 # 2. In another shell, kick off a swarm — three agents reacting to each other
-ROOM=$(curl -s -X POST http://127.0.0.1:8090/rooms \
+ROOM=$(curl -s -X POST http://127.0.0.1:8099/rooms \
   -H 'Content-Type: application/json' \
   -d '{"topic":"Pick the best name for a small chat router"}' | jq -r .code)
 
